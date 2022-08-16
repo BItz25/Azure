@@ -1,7 +1,7 @@
 def genaralvars () {
 
     env.GIT_REPO = 'https://gitlab.com/chaloglez/labsacademia.git'
-    env.GIT_BRANCH = 'main'
+    env.GIT_BRANCH = 'terraform-vars-lab02'
     env.DOCKER_REPO = 'gonzafirma'
     CONTAINER_PORT= '80'
 
@@ -18,11 +18,11 @@ pipeline {
                 genaralvars()
             }
         }
-        //stage ("Get Code") {
-        //    steps {
-        //        git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
-        //    }
-        //}
+        stage ("Get Code") {
+            steps {
+                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
+            }
+        }
         stage ("Verify If exist container") {
             steps {
                     script {
