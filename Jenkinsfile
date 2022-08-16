@@ -15,6 +15,7 @@ pipeline {
     stages {
         stage ("Set Variables") {
             steps {
+                cleanWs()
                 genaralvars()
             }
         }
