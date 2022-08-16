@@ -1,10 +1,8 @@
 def genaralvars () {
-
     env.GIT_REPO = 'https://gitlab.com/chaloglez/labsacademia.git'
     env.GIT_BRANCH = 'terraform-vars-lab02'
     env.DOCKER_REPO = 'gonzafirma'
     CONTAINER_PORT= '80'
-
 }
 
 pipeline {
