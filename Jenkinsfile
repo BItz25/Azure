@@ -14,16 +14,15 @@ pipeline {
     }
     stages {
         stage ("Set Variables") {
-            steps {
-                cleanWs()
+            steps {                
                 genaralvars()
             }
         }
-        stage ("Get Code") {
-            steps {
-                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}", poll: false
-            }
-        }
+        //stage ("Get Code") {
+        //    steps {
+        //        git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
+        //    }
+        //}
         stage ("Verify If exist container") {
             steps {
                     script {
