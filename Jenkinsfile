@@ -21,7 +21,7 @@ pipeline {
         }
         stage ("Get Code") {
             steps {
-                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO},poll: false"
+                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}", poll: false
             }
         }
         stage ("Verify If exist container") {
