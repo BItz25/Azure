@@ -1,0 +1,4 @@
+- hosts: all
+  tasks:
+    - name: Execute a traceroute command
+      shell: traceroute google.com 
