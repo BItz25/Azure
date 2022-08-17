@@ -1,0 +1,10 @@
+- hosts: all
+  tasks:
+    - name: "Update packages"
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: "Install Traceroute Package"
+      apt:
+        name: ['traceroute']
+        state: latest
