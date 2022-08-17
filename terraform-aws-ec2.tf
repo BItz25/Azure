@@ -16,6 +16,7 @@ provider "aws" {
 resource "aws_instance" "lab_server_01" {
   ami           = "ami-08d4ac5b634553e16"
   instance_type = "t2.micro"
+  security_groups = "launch-wizard-5"
   key_name= "ssh-v1"
   tags = {
     Name = "Server_terraform_lab01"
