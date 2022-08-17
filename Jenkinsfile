@@ -1,8 +1,10 @@
 def genaralvars () {
+
     env.GIT_REPO = 'https://gitlab.com/chaloglez/labsacademia.git'
-    env.GIT_BRANCH = 'main'
+    env.GIT_BRANCH = 'ansiblelab01'
     env.DOCKER_REPO = 'gonzafirma'
     CONTAINER_PORT= '80'
+
 }
 
 pipeline {
@@ -16,22 +18,21 @@ pipeline {
                 genaralvars()
             }
         }
-        //stage ("Get Code") {
-        //    steps {
-        //        git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
-        //    }
-        //}
+        stage ("Get Code") {
+            steps {
+                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
+            }
+        }
         stage ("Verify If exist container") {
             steps {
                     script {
-                        DOCKERID = sh (script: "docker ps -f publish=${CONTAINER_PORT} -q", returnStdout: true).trim()
-                        if  ( DOCKERID !="" ) {
-                            if (fileExists('terraform.tfstate')) {
-                                sh "terraform destroy  --target docker_container.nginx -var=\"container_port=${CONTAINER_PORT}\" -var=\"reponame=${env.DOCKER_REPO}\" --auto-approve"
+                        if (fileExists('terraform.tfstate')) {
+                            withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-gonzafirma', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]){
+                                sh "terraform destroy --auto-approve"
                             }
-                            else {
-                                sh "docker stop ${DOCKERID}"
-                            }
+                        }
+                        else {
+                            sh "echo no existe tfstate"
                         }
                 }
             }
@@ -48,9 +49,32 @@ pipeline {
         }
         stage('terraform apply') {
             steps{
-                sh "terraform apply -var=\"container_port=${CONTAINER_PORT}\" -var=\"reponame=${env.DOCKER_REPO}\" --auto-approve"
+                //withAWS(credentials: 'aws-gonzafirma', region: 'us-east-1') {
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-gonzafirma', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]){
+                    sh "terraform apply --auto-approve"
+                }
+                script {
+                    PUBLIC_IP_EC2 = sh (script: "terraform output instance_public_ip", returnStdout:true).trim()
+                }
+                echo "${PUBLIC_IP_EC2}"
             }
         }
+        stage('Change inventory content') {
+            steps{
+                sh "echo $PUBLIC_IP_EC2 > inventory.hosts"
+            }
+        }     
+        stage('Wait 5 minutes') {
+            steps {
+                sleep time:5, unit: 'MINUTES'
+            }
+        }
+        stage ("Ansible Hello World") {
+            steps {
+                ansiblePlaybook become: true, colorized: true, extras: '-v', disableHostKeyChecking: true, credentialsId: 'gonzafirma-ssh-server01', installation: 'ansible210', inventory: 'inventory.hosts', playbook: 'playbook-hello-world.yml'
+            }
+        }
+        
         stage('Manual Approval to Destroy the Infra') {
             steps{
                 input "Proceed with destroy the Infra?"
@@ -58,10 +82,10 @@ pipeline {
         }
         stage('Executing Terraform Destroy') {
             steps{
-                sh "terraform destroy --target docker_container.nginx -var=\"container_port=${CONTAINER_PORT}\" -var=\"reponame=${env.DOCKER_REPO}\" --auto-approve"
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-gonzafirma', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]){
+                sh "terraform destroy --auto-approve"
+            }
             }
         }
     }
-
-    
 }
