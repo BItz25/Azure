@@ -1,20 +1,73 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+def genaralvars () {
 
-trigger:
-- main
+    env.GIT_REPO = 'https://gitlab.com/tripetto/examples/angular.git'
+    env.GIT_BRANCH = 'master'
+    env.DOCKER_REPO = 'brendacruz25'
+    CONTAINER_PORT= '80'
 
-pool:
-  vmImage: ubuntu-latest
+}
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
-
+pipeline {
+    agent any
+    
+    stages {
+        stage ("Set Variables") {
+            steps {
+                genaralvars()
+            }
+        }
+        stage ("Get Code") {
+            steps {
+                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
+            }
+        }
+        stage ("Get npm modules") {
+            steps {
+                nodejs('nodejs12') {
+                    sh "npm install -g --prefer-offline --no-audit"
+                }
+            }
+        }
+        stage ("Build project") {
+            steps {
+                nodejs('nodejs12') {
+                    sh "npm run build"
+                }
+            }
+        }
+        stage ("Create Dockerfile") {
+            steps {
+                sh '''
+                    cat <<EOT > Dockerfile
+                    FROM nginx:latest
+                    COPY public/ /usr/share/nginx/html/
+                '''
+            }
+        }
+        stage ("Build Image") {
+            steps {
+                sh "docker build -t ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER} ."
+            }
+        }
+        stage ("Publish Image") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'bren', passwordVariable: 'docker_pass', usernameVariable: 'docker_user')]) {
+                    sh "docker login -u $docker_user -p $docker_pass"
+                    sh "docker push ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER}"
+                }
+            }
+        }
+        stage ("Run Image") {
+            steps {
+                    script {
+                        DOCKERID = sh (script: "docker ps -f publish=${CONTAINER_PORT} -q", returnStdout: true).trim()
+                        if  ( DOCKERID !="" ) {
+                            sh "docker stop ${DOCKERID} && docker run -d -p ${CONTAINER_PORT}:80 ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER}"
+                        } else {
+                            sh "docker run -d -p ${CONTAINER_PORT}:80 ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER}"
+                        }
+                }
+            }
+        }
+    }
+}
