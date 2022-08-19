@@ -1,79 +1,8 @@
-def genaralvars () {
-
-    env.GIT_REPO = 'https://github.com/BItz25/Azure.git'
-    env.GIT_BRANCH = 'master'
-    env.DOCKER_REPO = 'myresource'
-    CONTAINER_PORT= '80'
-- task: JenkinsQueueJob@2
+- task: Bash@3
   inputs:
-    jobName: 'Jenkins'
-    captureConsole: true
-    capturePipeline: true
-    isParameterizedJob: false
-
-}
-
-pipeline {
-    agent any
-    
-    stages {
-        stage ("Set Variables") {
-            steps {
-                genaralvars()
-            }
-        }
-        stage ("Get Code") {
-            steps {
-                git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
-            }
-        }
-        stage ("Get npm modules") {
-            steps {
-                nodejs('nodejs12') {
-                    sh "npm install -g --prefer-offline --no-audit"
-                }
-            }
-        }
-        stage ("Build project") {
-            steps {
-                nodejs('nodejs12') {
-                    sh "npm run build"
-                }
-            }
-        }
-        stage ("Create Dockerfile") {
-            steps {
-                sh '''
-                    cat <<EOT > Dockerfile
-                    FROM nginx:latest
-                    COPY public/ /usr/share/nginx/html/
-                '''
-            }
-        }
-        stage ("Build Image") {
-            steps {
-                sh "docker build -t ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER} ."
-            }
-        }
-        stage ("Publish Image") {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'bren', passwordVariable: 'docker_pass', usernameVariable: 'docker_user')]) {
-                    sh "docker login -u $docker_user -p $docker_pass"
-                    sh "docker push ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER}"
-                }
-            }
-        }
-        stage ("Run Image") {
-            steps {
-                    script {
-                        DOCKERID = sh (script: "docker ps -f publish=${CONTAINER_PORT} -q", returnStdout: true).trim()
-                        if  ( DOCKERID !="" ) {
-                            sh "docker stop ${DOCKERID} && docker run -d -p ${CONTAINER_PORT}:80 ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER}"
-                        } else {
-                            sh "docker run -d -p ${CONTAINER_PORT}:80 ${env.DOCKER_REPO}/${JOB_BASE_NAME}:${BUILD_NUMBER}"
-                        }
-                }
-            }
-        }
-    }
-}
+    targetType: 'inline'
+    script: |
+      cat <<EOT > Dockerfile
+      FROM nginx:latest
+      MAINTAINER pruebalogin
+      EOT
