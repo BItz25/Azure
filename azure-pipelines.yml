@@ -1,8 +1,0 @@
-# Starter pipeline
-- task: DockerCompose@0
-  inputs:
-    containerregistrytype: 'Azure Container Registry'
-    azureSubscription: 'Evaluación gratuita(a65dd6ec-e210-45a2-9266-f17330e2ab7b)'
-    azureContainerRegistry: '{"loginServer":"dockerbre.azurecr.io", "id" : "/subscriptions/a65dd6ec-e210-45a2-9266-f17330e2ab7b/resourceGroups/myresource/providers/Microsoft.ContainerRegistry/registries/dockerbre"}'
-    dockerComposeFile: '**/docker-compose.yml'
-    action: 'Run a Docker Compose command'
